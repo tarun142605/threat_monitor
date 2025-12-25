@@ -1,4 +1,5 @@
 from django.db import models
+from django.core.exceptions import ValidationError
 
 
 class Alert(models.Model):
@@ -17,7 +18,31 @@ class Alert(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        unique_together = [['event']]  # Prevent duplicate alerts for the same event
+        # Database-level constraint: exactly one alert per event
+        constraints = [
+            models.UniqueConstraint(
+                fields=['event'],
+                name='unique_alert_per_event',
+                condition=models.Q(event__isnull=False)
+            )
+        ]
+        # Keep unique_together for backward compatibility and Django admin
+        unique_together = [['event']]
+
+    def clean(self):
+        """Application-level validation to prevent duplicate alerts"""
+        if self.event:
+            # Check if another alert already exists for this event
+            existing_alert = Alert.objects.filter(event=self.event).exclude(pk=self.pk).first()
+            if existing_alert:
+                raise ValidationError({
+                    'event': f'An alert already exists for this event (Alert ID: {existing_alert.id}). Only one alert per event is allowed.'
+                })
+
+    def save(self, *args, **kwargs):
+        """Override save to enforce validation"""
+        self.full_clean()
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.title

@@ -4,12 +4,8 @@ from .models import Event
 
 
 class EventSerializer(serializers.ModelSerializer):
-    severity = serializers.ChoiceField(
-        choices=Event.SEVERITY_CHOICES,
-        error_messages={
-            'invalid_choice': 'Severity must be one of: LOW, MEDIUM, HIGH, CRITICAL'
-        }
-    )
+    # Severity field - validated strictly in validate_severity() method
+    severity = serializers.CharField()
     source_name = serializers.CharField(max_length=200, min_length=1, trim_whitespace=True)
     event_type = serializers.CharField(max_length=200, min_length=1, trim_whitespace=True)
     description = serializers.CharField(min_length=1, trim_whitespace=True)
@@ -20,15 +16,24 @@ class EventSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'timestamp']
 
     def validate_severity(self, value):
-        """Strict validation for severity field"""
+        """Strict validation for severity field - rejects invalid enum values"""
         if not value:
             raise serializers.ValidationError('Severity is required.')
+        
+        # Get valid severity values (uppercase)
         valid_severities = [choice[0] for choice in Event.SEVERITY_CHOICES]
-        if value not in valid_severities:
+        
+        # Normalize input to uppercase for comparison
+        value_upper = value.upper() if isinstance(value, str) else value
+        
+        # Strict validation: reject if not in valid choices (case-insensitive check)
+        if value_upper not in valid_severities:
             raise serializers.ValidationError(
-                f'Severity must be one of: {", ".join(valid_severities)}'
+                f'Severity must be one of: {", ".join(valid_severities)}. Received: "{value}".'
             )
-        return value.upper()  # Normalize to uppercase
+        
+        # Return normalized value only after validation passes
+        return value_upper
 
     def validate_source_name(self, value):
         """Validate and sanitize source_name"""

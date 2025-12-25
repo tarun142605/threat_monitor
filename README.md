@@ -22,10 +22,10 @@
 
 Threat Monitor is a security event management system that:
 
-- ✅ Ingests security events from various sources
-- ✅ Automatically generates alerts for high-severity events (`HIGH`, `CRITICAL`)
-- ✅ Provides role-based access control for alert management
-- ✅ Offers comprehensive API documentation and logging
+- Ingests security events via REST API (Admin-only)
+- Automatically generates alerts for high-severity events (`HIGH`, `CRITICAL`) via Django signals
+- Provides role-based access control (Admin: full access, Analyst: read-only alerts)
+- Includes API documentation (Swagger UI, ReDoc) and logging
 
 ---
 
@@ -183,14 +183,15 @@ Two roles are available via Django Groups:
 #### 👑 Admin
 
 - ✅ Full access to all endpoints
+- ✅ Can create events
 - ✅ Can create, read, update, and delete alerts
 - ✅ Can update alert status
 
 #### 👤 Analyst
 
-- ✅ Read-only access to alerts
-- ✅ Can create events
-- ❌ Cannot modify alerts (403 Forbidden on PATCH)
+- ✅ Read-only access to alerts (GET only)
+- ❌ Cannot create events (403 Forbidden)
+- ❌ Cannot modify alerts (403 Forbidden on PATCH, PUT, DELETE)
 
 #### Assigning Roles
 
@@ -222,9 +223,9 @@ user.groups.add(admin_group)
 
 ### Events Endpoints
 
-| Method | Endpoint | Description | Auth Required | Rate Limit |
-|:------:|:--------:|:-----------:|:-------------:|:----------:|
-| `POST` | `/api/events/` | Create new security event | ✅ Yes | 100/minute |
+| Method | Endpoint | Description | Auth Required | Rate Limit | Permissions |
+|:------:|:--------:|:-----------:|:-------------:|:----------:|:-----------:|
+| `POST` | `/api/events/` | Create new security event | ✅ Yes | 100/minute | Admin only |
 
 #### Create Event Request
 
@@ -267,7 +268,11 @@ user.groups.add(admin_group)
 | Method | Endpoint | Description | Auth Required | Permissions |
 |:------:|:--------:|:-----------:|:-------------:|:-----------:|
 | `GET` | `/api/alerts/` | List alerts (paginated) | ✅ Yes | Admin, Analyst (read-only) |
+| `GET` | `/api/alerts/{id}/` | Retrieve single alert | ✅ Yes | Admin, Analyst (read-only) |
+| `POST` | `/api/alerts/` | Create alert | ✅ Yes | Admin only |
 | `PATCH` | `/api/alerts/{id}/` | Update alert status | ✅ Yes | Admin only |
+| `PUT` | `/api/alerts/{id}/` | Update alert | ✅ Yes | Admin only |
+| `DELETE` | `/api/alerts/{id}/` | Delete alert | ✅ Yes | Admin only |
 
 #### List Alerts
 
@@ -358,11 +363,11 @@ Authorization: Bearer <access_token>
 
 ### 🔒 Security
 
-- ✅ JWT-based authentication
-- ✅ Role-based access control (RBAC)
-- ✅ Input validation and sanitization (XSS prevention)
-- ✅ Query parameter whitelisting
-- ✅ Rate limiting on event ingestion
+- ✅ JWT-based authentication (required for all endpoints except token endpoints)
+- ✅ Role-based access control (RBAC) via Django Groups
+- ✅ Input validation and sanitization (XSS prevention via HTML tag stripping)
+- ✅ Query parameter whitelisting (status and severity filters validated against allowed choices)
+- ✅ Rate limiting on event ingestion (100 requests/minute per user)
 
 ### 📝 Logging
 
@@ -372,12 +377,13 @@ Authorization: Bearer <access_token>
 
 ### 🔔 Automatic Alert Creation
 
-When an event with `HIGH` or `CRITICAL` severity is created:
+When a **new** event with `HIGH` or `CRITICAL` severity is created:
 
-1. ✅ An alert is automatically generated
+1. ✅ An alert is automatically generated via Django signal
 2. ✅ Alert status is set to `OPEN`
-3. ✅ Alert is linked to the event
-4. ✅ Duplicate alerts are prevented (one alert per event)
+3. ✅ Alert is linked to the event via ForeignKey
+4. ✅ Duplicate alerts are prevented (enforced by database UniqueConstraint and application logic)
+5. ⚠️ **Note:** Alert creation only occurs on event creation, not on updates
 
 ---
 
@@ -401,9 +407,10 @@ python manage.py test alerts.tests
 
 ### Test Coverage
 
-- ✅ Event alert creation (HIGH/CRITICAL severity)
-- ✅ Analyst permission restrictions
-- ✅ Admin permission grants
+The test suite includes:
+- Event alert creation for HIGH/CRITICAL severity events
+- Analyst permission restrictions (cannot create events, cannot update alerts)
+- Admin permission grants (can create events, can update alerts)
 
 ---
 
@@ -441,18 +448,20 @@ python manage.py makemigrations --check
 
 ---
 
-## 📌 Assumptions Made
+## 📌 Assumptions & Implementation Details
 
-1. **User Model**: Uses Django's default User model (no custom user model)
-2. **Database**: SQLite for development (easily configurable for production)
-3. **Alert Status**: Only `ACKNOWLEDGED` and `RESOLVED` can be set via API (not `OPEN`)
-4. **Event Severity**: Strict validation - only predefined choices accepted
-5. **Rate Limiting**: Event ingestion limited to 100 requests/minute per user
-6. **Alert Uniqueness**: One alert per event (enforced by database constraint)
-7. **Logging**: Logs stored in `logs/` directory (excluded from version control)
-8. **Permissions**: Group-based permissions (Admin, Analyst)
-9. **Pagination**: Default page size of 100 items
-10. **Token Lifetime**: Access tokens valid for 1 hour, refresh tokens for 1 day
+1. **User Model**: Uses Django's default User model (no custom user model implemented)
+2. **Database**: SQLite for development (can be configured for production databases)
+3. **Alert Status Updates**: Only `ACKNOWLEDGED` and `RESOLVED` can be set via PATCH endpoint. `OPEN` status is set automatically and cannot be changed via API.
+4. **Event Severity**: Strict validation - only `LOW`, `MEDIUM`, `HIGH`, `CRITICAL` accepted (case-insensitive, normalized to uppercase)
+5. **Rate Limiting**: Event ingestion endpoint limited to 100 requests/minute per authenticated user
+6. **Alert Uniqueness**: One alert per event enforced at database level (UniqueConstraint) and application level (signal logic)
+7. **Logging**: Logs written to `logs/threat_monitor.log` and console (INFO level)
+8. **Permissions**: Group-based permissions using Django Groups (`Admin`, `Analyst`)
+9. **Pagination**: Default page size of 100 items (configurable in DRF settings)
+10. **Token Lifetime**: Access tokens valid for 1 hour, refresh tokens for 1 day (configurable in SIMPLE_JWT settings)
+11. **Event Creation**: Admin-only access (Analyst cannot create events)
+12. **Alert Creation**: Alerts are created automatically via signal, not through API endpoints
 
 ---
 

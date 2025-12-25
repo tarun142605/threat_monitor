@@ -11,16 +11,21 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
 from pathlib import Path
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Ensure logs directory exists
+LOGS_DIR = BASE_DIR / 'logs'
+LOGS_DIR.mkdir(exist_ok=True)
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-r0c4*ihmrs4^6)ya-ch9!-a3hnpb*@8h*w6jn)+a)*gok^*05('
+# Use environment variable if available, otherwise fallback to development key
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-r0c4*ihmrs4^6)ya-ch9!-a3hnpb*@8h*w6jn)+a)*gok^*05(')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -180,7 +185,7 @@ LOGGING = {
         'file': {
             'level': 'INFO',
             'class': 'logging.FileHandler',
-            'filename': BASE_DIR / 'logs' / 'threat_monitor.log',
+            'filename': LOGS_DIR / 'threat_monitor.log',
             'formatter': 'verbose',
         },
         'console': {

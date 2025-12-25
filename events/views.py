@@ -18,9 +18,9 @@ class EventIngestionThrottle(UserRateThrottle):
 
 @extend_schema(
     summary='Create a new security event',
-    description='Ingest a new security event. Requires authentication. Rate limited to 100 requests per minute.',
+    description='Ingest a new security event. Admin-only access. Rate limited to 100 requests per minute.',
     request=EventSerializer,
-    responses={201: EventSerializer, 400: EventSerializer},
+    responses={201: EventSerializer, 400: EventSerializer, 403: None},
     tags=['Events'],
 )
 @api_view(['POST'])
@@ -29,7 +29,7 @@ class EventIngestionThrottle(UserRateThrottle):
 def create_event(request):
     """
     POST endpoint to create a new event.
-    Requires authentication. Admin and Analyst can create events.
+    Admin-only access. Analyst receives 403 Forbidden.
     Rate limited to 100 requests per minute.
     """
     serializer = EventSerializer(data=request.data)
