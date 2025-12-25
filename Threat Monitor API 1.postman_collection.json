@@ -1,0 +1,511 @@
+{
+	"info": {
+		"_postman_id": "4f1a7a18-e9f0-4105-8d92-f1a86ad7d66d",
+		"name": "Threat Monitor API 1",
+		"description": "Postman collection for Threat Monitor API - Security event management system with role-based access control",
+		"schema": "https://schema.getpostman.com/json/collection/v2.0.0/collection.json",
+		"_exporter_id": "32914566"
+	},
+	"item": [
+		{
+			"name": "Authentication",
+			"item": [
+				{
+					"name": "Obtain Access Token",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    var jsonData = pm.response.json();",
+									"    pm.environment.set('access_token', jsonData.access);",
+									"    pm.environment.set('refresh_token', jsonData.refresh);",
+									"    console.log('Access token saved to environment');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"admin\",\n    \"password\": \"your_password\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": "{{base_url}}/api/token/",
+						"description": "Obtain JWT access and refresh tokens. Use these credentials to authenticate for all other endpoints."
+					},
+					"response": []
+				},
+				{
+					"name": "Refresh Access Token",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    var jsonData = pm.response.json();",
+									"    pm.environment.set('access_token', jsonData.access);",
+									"    console.log('Access token refreshed');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"refresh\": \"{{refresh_token}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": "{{base_url}}/api/token/refresh/",
+						"description": "Refresh the access token using a valid refresh token."
+					},
+					"response": []
+				}
+			],
+			"description": "JWT authentication endpoints"
+		},
+		{
+			"name": "Events",
+			"item": [
+				{
+					"name": "Create Event (Admin Only)",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Ensure access token is set",
+									"if (!pm.environment.get('access_token')) {",
+									"    throw new Error('Access token not found. Please obtain token first.');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": {
+								"token": "{{access_token}}"
+							}
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"source_name\": \"Firewall\",\n    \"event_type\": \"Intrusion Attempt\",\n    \"severity\": \"HIGH\",\n    \"description\": \"Unauthorized access attempt detected from IP 192.168.1.100\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": "{{base_url}}/api/events/",
+						"description": "Create a new security event. Admin-only access. Rate limited to 100 requests/minute.\n\n**Severity values:** LOW, MEDIUM, HIGH, CRITICAL\n\n**Note:** Events with HIGH or CRITICAL severity automatically create alerts with OPEN status."
+					},
+					"response": []
+				},
+				{
+					"name": "Create Event - LOW Severity",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"if (!pm.environment.get('access_token')) {",
+									"    throw new Error('Access token not found. Please obtain token first.');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": {
+								"token": "{{access_token}}"
+							}
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"source_name\": \"IDS\",\n    \"event_type\": \"Suspicious Activity\",\n    \"severity\": \"LOW\",\n    \"description\": \"Minor suspicious network activity detected\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": "{{base_url}}/api/events/",
+						"description": "Example: Create event with LOW severity (does not create alert)"
+					},
+					"response": []
+				},
+				{
+					"name": "Create Event - CRITICAL Severity",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"if (!pm.environment.get('access_token')) {",
+									"    throw new Error('Access token not found. Please obtain token first.');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": {
+								"token": "{{access_token}}"
+							}
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"source_name\": \"SIEM\",\n    \"event_type\": \"Data Breach\",\n    \"severity\": \"CRITICAL\",\n    \"description\": \"Potential data breach detected - immediate action required\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": "{{base_url}}/api/events/",
+						"description": "Example: Create event with CRITICAL severity (automatically creates alert)"
+					},
+					"response": []
+				}
+			],
+			"description": "Event management endpoints"
+		},
+		{
+			"name": "Alerts",
+			"item": [
+				{
+					"name": "List Alerts",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"if (!pm.environment.get('access_token')) {",
+									"    throw new Error('Access token not found. Please obtain token first.');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": {
+								"token": "{{access_token}}"
+							}
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/alerts/?status=OPEN&severity=HIGH&ordering=-created_at",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"alerts",
+								""
+							],
+							"query": [
+								{
+									"key": "status",
+									"value": "OPEN",
+									"description": "Filter by alert status: OPEN, ACKNOWLEDGED, RESOLVED"
+								},
+								{
+									"key": "severity",
+									"value": "HIGH",
+									"description": "Filter by event severity: LOW, MEDIUM, HIGH, CRITICAL"
+								},
+								{
+									"key": "ordering",
+									"value": "-created_at",
+									"description": "Order by field: created_at, status, -created_at, -status"
+								}
+							]
+						},
+						"description": "Retrieve a paginated list of alerts. Supports filtering by status and severity.\n\n**Query Parameters:**\n- `status`: Filter by alert status (OPEN, ACKNOWLEDGED, RESOLVED)\n- `severity`: Filter by event severity (LOW, MEDIUM, HIGH, CRITICAL)\n- `ordering`: Order by field (created_at, status, -created_at, -status)\n\n**Access:** Admin (full), Analyst (read-only)"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Alert by ID",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"if (!pm.environment.get('access_token')) {",
+									"    throw new Error('Access token not found. Please obtain token first.');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": {
+								"token": "{{access_token}}"
+							}
+						},
+						"method": "GET",
+						"header": [],
+						"url": "{{base_url}}/api/alerts/1/",
+						"description": "Retrieve a single alert by ID.\n\n**Access:** Admin (full), Analyst (read-only)"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Alert Status (PATCH)",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"if (!pm.environment.get('access_token')) {",
+									"    throw new Error('Access token not found. Please obtain token first.');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": {
+								"token": "{{access_token}}"
+							}
+						},
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"status\": \"ACKNOWLEDGED\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": "{{base_url}}/api/alerts/1/",
+						"description": "Update alert status. Admin-only access.\n\n**Allowed Status Values:**\n- `ACKNOWLEDGED`\n- `RESOLVED`\n\n**Note:** Only ACKNOWLEDGED and RESOLVED can be set via API. OPEN status is set automatically and cannot be changed."
+					},
+					"response": []
+				},
+				{
+					"name": "Update Alert Status to RESOLVED",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"if (!pm.environment.get('access_token')) {",
+									"    throw new Error('Access token not found. Please obtain token first.');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": {
+								"token": "{{access_token}}"
+							}
+						},
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"status\": \"RESOLVED\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": "{{base_url}}/api/alerts/1/",
+						"description": "Example: Update alert status to RESOLVED"
+					},
+					"response": []
+				},
+				{
+					"name": "Create Alert (Admin Only)",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"if (!pm.environment.get('access_token')) {",
+									"    throw new Error('Access token not found. Please obtain token first.');",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": {
+								"token": "{{access_token}}"
+							}
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"id\": 2,\n    \"title\": \"Alert: Intrusion Attempt\",\n    \"description\": \"Unauthorized access attempt detected from IP 192.168.1.100\",\n    \"severity\": \"HIGH\",\n    \"status\": \"RESOLVED\",\n    \"created_at\": \"2025-12-25T12:07:31.954280Z\",\n    \"updated_at\": \"2025-12-25T12:11:17.267602Z\",\n    \"event_id\": 2,\n    \"event_type\": \"Intrusion Attempt\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": "{{base_url}}/api/alerts/",
+						"description": "**NOT SUPPORTED BY DESIGN** - Manual alert creation via POST /api/alerts/ is NOT supported and will fail with a validation error.\n\n**Alerts are automatically created** when events with HIGH or CRITICAL severity are created via the Events API. This endpoint exists for completeness but will return a 400 Bad Request error if attempted.\n\n**To create alerts:** Create an event with HIGH or CRITICAL severity using POST /api/events/ - the alert will be automatically generated."
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Alert (Admin Only)",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"if (!pm.environment.get('access_token')) {",
+									"    throw new Error('Access token not found. Please obtain token first.');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": {
+								"token": "{{access_token}}"
+							}
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": "{{base_url}}/api/alerts/1/",
+						"description": "Delete an alert. Admin-only access."
+					},
+					"response": []
+				}
+			],
+			"description": "Alert management endpoints"
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// Set base URL if not already set",
+					"if (!pm.environment.get('base_url')) {",
+					"    pm.environment.set('base_url', 'http://localhost:8000');",
+					"}"
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": []
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8000",
+			"type": "string"
+		}
+	]
+}

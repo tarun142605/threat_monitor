@@ -35,9 +35,6 @@ db.sqlite3-journal
 /staticfiles
 /logs
 
-# Postman
-*.postman_environment.json
-
 # IDE
 .vscode/
 .idea/

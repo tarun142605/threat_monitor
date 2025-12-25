@@ -288,10 +288,12 @@ user.groups.add(admin_group)
 |:------:|:--------:|:-----------:|:-------------:|:-----------:|
 | `GET` | `/api/alerts/` | List alerts (paginated) | ✅ Yes | Admin, Analyst (read-only) |
 | `GET` | `/api/alerts/{id}/` | Retrieve single alert | ✅ Yes | Admin, Analyst (read-only) |
-| `POST` | `/api/alerts/` | Create alert | ✅ Yes | Admin only |
+| `POST` | `/api/alerts/` | ~~Create alert~~ | ✅ Yes | **Not supported - alerts auto-created from events** |
 | `PATCH` | `/api/alerts/{id}/` | Update alert status | ✅ Yes | Admin only |
 | `PUT` | `/api/alerts/{id}/` | Update alert | ✅ Yes | Admin only |
 | `DELETE` | `/api/alerts/{id}/` | Delete alert | ✅ Yes | Admin only |
+
+> ⚠️ **Important:** **Manual alert creation via POST `/api/alerts/` is NOT supported by design.** Alerts are automatically created when events with `HIGH` or `CRITICAL` severity are created. Attempting to create an alert manually will result in a validation error.
 
 #### List Alerts
 
@@ -498,7 +500,7 @@ python manage.py makemigrations --check
 9. **Pagination**: Default page size of 100 items (configurable in DRF settings)
 10. **Token Lifetime**: Access tokens valid for 1 hour, refresh tokens for 1 day (configurable in SIMPLE_JWT settings)
 11. **Event Creation**: Admin-only access (Analyst cannot create events)
-12. **Alert Creation**: Alerts are created automatically via signal, not through API endpoints
+12. **Alert Creation**: **Alerts are created automatically via signal, not through API endpoints. Manual alert creation via POST `/api/alerts/` is NOT supported and will fail with a validation error.**
 
 ---
 
