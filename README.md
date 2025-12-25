@@ -108,19 +108,38 @@ python manage.py migrate
 python manage.py create_groups
 ```
 
-#### 6. Create superuser (optional)
+#### 6. Create test users (recommended for testing)
+
+```bash
+python manage.py create_test_users
+```
+
+This creates test users with default password `testpass123`:
+- **Admin users:** `admin`, `testadmin` (can create events, manage alerts)
+- **Analyst users:** `analyst`, `testanalyst` (read-only alerts, cannot create events)
+
+**Options:**
+- `--password PASSWORD`: Set custom password (default: `testpass123`)
+- `--reset`: Delete existing test users before creating new ones
+
+#### 7. Create superuser (optional)
 
 ```bash
 python manage.py createsuperuser
 ```
 
-#### 7. Run development server
+#### 8. Run development server
 
 ```bash
 python manage.py runserver
 ```
 
 > 🌐 The API will be available at `http://localhost:8000/`
+
+> 💡 **Quick Start Testing:** Use the test users created in step 6:
+> - Admin: `admin` / `testpass123`
+> - Analyst: `analyst` / `testpass123`
+> - Import `Threat_Monitor_API.postman_collection.json` into Postman for ready-to-use API requests
 
 ---
 
@@ -431,6 +450,24 @@ python manage.py migrate
 ```bash
 python manage.py create_groups
 ```
+
+### Creating Test Users
+
+```bash
+# Create test users with default password
+python manage.py create_test_users
+
+# Create test users with custom password
+python manage.py create_test_users --password mypassword
+
+# Reset and recreate test users
+python manage.py create_test_users --reset
+```
+
+**Test Users Created:**
+- **Admin users:** `admin`, `testadmin` (can create events, manage alerts)
+- **Analyst users:** `analyst`, `testanalyst` (read-only alerts, cannot create events)
+- **Default password:** `testpass123` (all users)
 
 ### Accessing Admin Panel
 
